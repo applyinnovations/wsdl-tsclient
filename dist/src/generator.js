@@ -67,6 +67,26 @@ var logger_1 = require("./utils/logger");
 var defaultOptions = {
     emitDefinitionsOnly: false,
 };
+function isObject(object) {
+    return object != null && typeof object === "object";
+}
+function deepEqual(object1, object2) {
+    var keys1 = Object.keys(object1);
+    var keys2 = Object.keys(object2);
+    if (keys1.length !== keys2.length) {
+        return false;
+    }
+    for (var _i = 0, keys1_1 = keys1; _i < keys1_1.length; _i++) {
+        var key = keys1_1[_i];
+        var val1 = object1[key];
+        var val2 = object2[key];
+        var areObjects = isObject(val1) && isObject(val2);
+        if ((areObjects && !deepEqual(val1, val2)) || (!areObjects && val1 !== val2)) {
+            return false;
+        }
+    }
+    return true;
+}
 /**
  * To avoid duplicated imports
  */
@@ -79,6 +99,8 @@ function addSafeImport(imports, moduleSpecifier, namedImport) {
     }
 }
 var incorrectPropNameChars = [" ", "-", "."];
+var generatedProperties = {};
+var duplicateCount = 0;
 /**
  * This is temporally method to fix this issue https://github.com/dsherret/ts-morph/issues/1160
  */
@@ -109,18 +131,42 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
     var definitionProperties = [];
     for (var _i = 0, _a = definition.properties; _i < _a.length; _i++) {
         var prop = _a[_i];
+        var cont = true;
+        // @ts-ignore
+        if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+            // @ts-ignore
+            generatedProperties[prop.ref.name] = prop.ref.properties;
+        }
+        // console.log(prop);
         if (prop.kind === "PRIMITIVE") {
             // e.g. string
             definitionProperties.push(createProperty(prop.name, prop.type, prop.description, prop.isArray));
         }
         else if (prop.kind === "REFERENCE") {
             // e.g. Items
-            if (!generated.includes(prop.ref)) {
-                // Wasn't generated yet
-                generateDefinitionFile(project, prop.ref, defDir, __spreadArray(__spreadArray([], stack, true), [prop.ref.name], false), generated);
+            // WORKING
+            for (var propName in generatedProperties) {
+                if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
+                        console.log("=========== START ============");
+                        console.log("DUPLICATE", propName, prop.ref.name);
+                        delete generatedProperties[prop.ref.name];
+                        addSafeImport(definitionImports, "./".concat(propName), propName);
+                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
+                        duplicateCount++;
+                        console.log("DUPLICATE COUNT: ", duplicateCount);
+                        cont = false;
+                    }
+                }
             }
-            addSafeImport(definitionImports, "./".concat(prop.ref.name), prop.ref.name);
-            definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+            if (cont) {
+                if (!generated.includes(prop.ref)) {
+                    // Wasn't generated yet
+                    generateDefinitionFile(project, prop.ref, defDir, __spreadArray(__spreadArray([], stack, true), [prop.ref.name], false), generated);
+                }
+                addSafeImport(definitionImports, "./".concat(prop.ref.name), prop.ref.name);
+                definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+            }
         }
     }
     defFile.addImportDeclarations(definitionImports);
@@ -318,6 +364,11 @@ function generate(parsedWsdl, outDir, options) {
                 }); }));
             }
             logger_1.Logger.log("Writing Index file: ".concat(path_1.default.resolve(path_1.default.join(outDir, "index")), ".ts"));
+            // allDefinitions.forEach((def) => {
+            //     if (def.name.includes("Attributes")) {
+            //         console.log(def);
+            //     }
+            // });
             indexFile.saveSync();
             return [2 /*return*/];
         });
