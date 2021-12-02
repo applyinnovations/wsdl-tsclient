@@ -324,9 +324,8 @@ export async function generate(
                 isExported: true,
                 kind: StructureKind.Interface,
                 // docs: [`${parsedWsdl.name}Client`],
-                name: `${parsedWsdl.name}Client`,
+                name: `${parsedWsdl.name}Methods`,
                 properties: clientServices,
-                extends: ["SoapClient"],
                 methods: allMethods.map<OptionalKind<MethodSignatureStructure>>((method) => ({
                     name: sanitizePropName(`${method.name}Async`),
                     parameters: [
@@ -339,6 +338,12 @@ export async function generate(
                         method.returnDefinition ? method.returnDefinition.name : "unknown"
                     }, rawResponse: any, soapHeader: any, rawRequest: any]>`,
                 })),
+            },
+            {
+                kind: StructureKind.Interface,
+                isExported: true,
+                name: `${parsedWsdl.name}Client`,
+                extends: [`${parsedWsdl.name}Methods`, "SoapClient"],
             },
         ]);
         const createClientDeclaration = clientFile.addFunction({
