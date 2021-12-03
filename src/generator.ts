@@ -1,5 +1,6 @@
 import camelcase from "camelcase";
 import path from "path";
+import { listenerCount } from "stream";
 import {
     ImportDeclarationStructure,
     MethodSignatureStructure,
@@ -88,6 +89,130 @@ function createProperty(
         hasQuestionToken: true,
         type: isArray ? `Array<${type}>` : type,
     };
+}
+
+type DefinitionImports = OptionalKind<ImportDeclarationStructure>[];
+type DefinitionProperties = PropertySignatureStructure[];
+
+function simplifyDefinitions(
+    definitionImports: DefinitionImports,
+    definitionProperties: DefinitionProperties
+): {
+    definitionImports: DefinitionImports;
+    definitionProperties: DefinitionProperties;
+} {
+    // do some merging
+    return {
+        definitionImports,
+        definitionProperties,
+    };
+}
+let genPropsArray: DefinitionProperty[][] = [];
+
+function createDefinitionFile(generated: Definition[], definition: Definition, project: Project, defDir: string): void {
+    const defName = definition.name;
+    const defFilePath = path.join(defDir, `${defName}.ts`);
+    const defFile = project.createSourceFile(defFilePath, "", {
+        overwrite: true,
+    });
+
+    const definitionImports: OptionalKind<ImportDeclarationStructure>[] = [];
+    const definitionProperties: PropertySignatureStructure[] = [];
+    let cont = true;
+    for (const prop of definition.properties) {
+        // @ts-ignore
+
+        // console.log(prop);
+        if (prop.kind === "PRIMITIVE") {
+            // e.g. string
+            definitionProperties.push(createProperty(prop.name, prop.type, prop.description, prop.isArray));
+        } else if (prop.kind === "REFERENCE") {
+            // e.g. Items
+
+            // WORKING
+            for (const propName in generatedProperties) {
+                if (prop?.ref) {
+                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
+                        console.log("=========== START ============");
+                        console.log("DUPLICATE", propName, prop.ref.name);
+                        addSafeImport(definitionImports, `./${propName}`, propName);
+                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
+                        duplicateCount++;
+                        console.log("DUPLICATE COUNT: ", duplicateCount);
+                        cont = false;
+                    }
+                }
+            }
+            if (cont) {
+                if (!generated.includes(prop.ref)) {
+                    // Wasn't generated yet
+                    console.log("it went here=====?");
+                    // @ts-ignore
+
+                    createDefinitionFile(generated, prop.ref.definition, project, defDir);
+                }
+                addSafeImport(definitionImports, `./${prop.ref.name}`, prop.ref.name);
+                definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+                // @ts-ignore
+            }
+            if (prop?.ref) {
+                // @ts-ignore
+                generatedProperties[prop.ref.name] = prop.ref.properties;
+            }
+        }
+    }
+
+    if (cont) {
+        defFile.addImportDeclarations(definitionImports);
+        defFile.addStatements([
+            {
+                leadingTrivia: (writer) => writer.newLine(),
+                isExported: true,
+                name: defName,
+                docs: [definition.docs.join("\n")],
+                kind: StructureKind.Interface,
+                properties: definitionProperties,
+            },
+        ]);
+        // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
+        defFile.saveSync();
+    }
+}
+function generateDefinition(
+    project: Project,
+    definition: null | Definition,
+    defDir: string,
+    stack: string[],
+    generated: Definition[]
+): void {
+    generated.push(definition);
+
+    for (const prop of definition.properties) {
+        if (prop.kind === "REFERENCE") {
+            if (!generated.includes(prop.ref)) {
+                // Wasn't generated yet
+
+                generateDefinition(project, prop.ref, defDir, [...stack, prop.ref.name], generated);
+            }
+        }
+        // @ts-ignore
+    }
+}
+
+function genDefFil(
+    project: Project,
+    definition: null | Definition,
+    defDir: string,
+    stack: string[],
+    generated: Definition[]
+): void {
+    generateDefinition(project, definition, defDir, stack, generated);
+
+    // const allDefinitions = removDeuplicatedDefinitions(generated);
+    // generated = allDefinitions;
+    generated.forEach((definition) => {
+        createDefinitionFile(generated, definition, project, defDir);
+    });
 }
 
 function generateDefinitionFile(
@@ -201,16 +326,19 @@ export async function generate(
             const portFileMethods: Array<OptionalKind<MethodSignatureStructure>> = [];
             for (const method of port.methods) {
                 // TODO: Deduplicate PortImports
+
                 if (method.paramDefinition !== null) {
                     if (!allDefinitions.includes(method.paramDefinition)) {
                         // Definition is not generated
-                        generateDefinitionFile(
+                        genDefFil(
                             project,
                             method.paramDefinition,
                             defDir,
                             [method.paramDefinition.name],
                             allDefinitions
                         );
+                        // createDefinitionFile(allDefinitions, project, defDir);
+
                         addSafeImport(
                             clientImports,
                             `./definitions/${method.paramDefinition.name}`,
@@ -226,13 +354,14 @@ export async function generate(
                 if (method.returnDefinition !== null) {
                     if (!allDefinitions.includes(method.returnDefinition)) {
                         // Definition is not generated
-                        generateDefinitionFile(
+                        genDefFil(
                             project,
                             method.returnDefinition,
                             defDir,
                             [method.returnDefinition.name],
                             allDefinitions
                         );
+                        // createDefinitionFile(allDefinitions, project, defDir);
                         addSafeImport(
                             clientImports,
                             `./definitions/${method.returnDefinition.name}`,

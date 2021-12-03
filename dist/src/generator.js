@@ -120,6 +120,107 @@ function createProperty(name, type, doc, isArray, optional) {
         type: isArray ? "Array<".concat(type, ">") : type,
     };
 }
+function simplifyDefinitions(definitionImports, definitionProperties) {
+    // do some merging
+    return {
+        definitionImports: definitionImports,
+        definitionProperties: definitionProperties,
+    };
+}
+var genPropsArray = [];
+// const checkIfDuplicateDefinition = (definitions: Definition[]) => {
+//     let uniqueDefinitions = []
+//     definitions.forEach((item) => {
+//         if(item.properties.kin)
+//     })
+// };
+function createDefinitionFile(generated, definition, project, defDir) {
+    var defName = definition.name;
+    var defFilePath = path_1.default.join(defDir, "".concat(defName, ".ts"));
+    var defFile = project.createSourceFile(defFilePath, "", {
+        overwrite: true,
+    });
+    var definitionImports = [];
+    var definitionProperties = [];
+    var cont = true;
+    for (var _i = 0, _a = definition.properties; _i < _a.length; _i++) {
+        var prop = _a[_i];
+        // @ts-ignore
+        // console.log(prop);
+        if (prop.kind === "PRIMITIVE") {
+            // e.g. string
+            definitionProperties.push(createProperty(prop.name, prop.type, prop.description, prop.isArray));
+        }
+        else if (prop.kind === "REFERENCE") {
+            // e.g. Items
+            // WORKING
+            for (var propName in generatedProperties) {
+                if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
+                        console.log("=========== START ============");
+                        console.log("DUPLICATE", propName, prop.ref.name);
+                        addSafeImport(definitionImports, "./".concat(propName), propName);
+                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
+                        duplicateCount++;
+                        console.log("DUPLICATE COUNT: ", duplicateCount);
+                        cont = false;
+                    }
+                }
+            }
+            if (cont) {
+                if (!generated.includes(prop.ref)) {
+                    // Wasn't generated yet
+                    console.log("it went here=====?");
+                    // @ts-ignore
+                    createDefinitionFile(generated, prop.ref.definition, project, defDir);
+                }
+                addSafeImport(definitionImports, "./".concat(prop.ref.name), prop.ref.name);
+                definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+                // @ts-ignore
+            }
+            if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+                // @ts-ignore
+                generatedProperties[prop.ref.name] = prop.ref.properties;
+            }
+        }
+    }
+    if (cont) {
+        defFile.addImportDeclarations(definitionImports);
+        defFile.addStatements([
+            {
+                leadingTrivia: function (writer) { return writer.newLine(); },
+                isExported: true,
+                name: defName,
+                docs: [definition.docs.join("\n")],
+                kind: ts_morph_1.StructureKind.Interface,
+                properties: definitionProperties,
+            },
+        ]);
+        // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
+        defFile.saveSync();
+    }
+}
+function generateDefinition(project, definition, defDir, stack, generated) {
+    generated.push(definition);
+    for (var _i = 0, _a = definition.properties; _i < _a.length; _i++) {
+        var prop = _a[_i];
+        if (prop.kind === "REFERENCE") {
+            if (!generated.includes(prop.ref)) {
+                // Wasn't generated yet
+                generateDefinition(project, prop.ref, defDir, __spreadArray(__spreadArray([], stack, true), [prop.ref.name], false), generated);
+            }
+        }
+        // @ts-ignore
+    }
+}
+function genDefFil(project, definition, defDir, stack, generated) {
+    generateDefinition(project, definition, defDir, stack, generated);
+    // const allDefinitions = removDeuplicatedDefinitions(generated);
+    // generated = allDefinitions;
+    generated.forEach(function (definition) {
+        createDefinitionFile(generated, definition, project, defDir);
+    });
+}
 function generateDefinitionFile(project, definition, defDir, stack, generated) {
     var defName = definition.name;
     var defFilePath = path_1.default.join(defDir, "".concat(defName, ".ts"));
@@ -218,7 +319,8 @@ function generate(parsedWsdl, outDir, options) {
                         if (method.paramDefinition !== null) {
                             if (!allDefinitions.includes(method.paramDefinition)) {
                                 // Definition is not generated
-                                generateDefinitionFile(project, method.paramDefinition, defDir, [method.paramDefinition.name], allDefinitions);
+                                genDefFil(project, method.paramDefinition, defDir, [method.paramDefinition.name], allDefinitions);
+                                // createDefinitionFile(allDefinitions, project, defDir);
                                 addSafeImport(clientImports, "./definitions/".concat(method.paramDefinition.name), method.paramDefinition.name);
                             }
                             addSafeImport(portImports, "../definitions/".concat(method.paramDefinition.name), method.paramDefinition.name);
@@ -226,7 +328,8 @@ function generate(parsedWsdl, outDir, options) {
                         if (method.returnDefinition !== null) {
                             if (!allDefinitions.includes(method.returnDefinition)) {
                                 // Definition is not generated
-                                generateDefinitionFile(project, method.returnDefinition, defDir, [method.returnDefinition.name], allDefinitions);
+                                genDefFil(project, method.returnDefinition, defDir, [method.returnDefinition.name], allDefinitions);
+                                // createDefinitionFile(allDefinitions, project, defDir);
                                 addSafeImport(clientImports, "./definitions/".concat(method.returnDefinition.name), method.returnDefinition.name);
                             }
                             addSafeImport(portImports, "../definitions/".concat(method.returnDefinition.name), method.returnDefinition.name);
