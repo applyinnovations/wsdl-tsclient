@@ -107,10 +107,6 @@ function generateDefinitionFile(
 
     const definitionImports: OptionalKind<ImportDeclarationStructure>[] = [];
     const definitionProperties: PropertySignatureStructure[] = [];
-    if (defName.includes("ProtelAssociatedQuantity")) {
-        console.log("this is the definition", JSON.stringify(definition));
-    }
-
     for (const prop of definition.properties) {
         let cont = true;
         // @ts-ignore
@@ -122,15 +118,14 @@ function generateDefinitionFile(
         } else if (prop.kind === "REFERENCE") {
             // e.g. Items
 
+            if (defName.includes("ProtelAssociatedQuantity")) {
+                console.log("this is the propName", JSON.stringify(prop));
+            }
             // WORKING
             for (const propName in generatedProperties) {
                 if (prop?.ref) {
                     const currentGenProps = generatedProperties[propName];
                     if (isEqual(currentGenProps.properties, prop.ref.properties)) {
-                        // if (defName.includes("ProtelAssociatedQuantity")) {
-                        //     console.log("this is the propName", defName, JSON.stringify(prop));
-                        //     console.log("this is the currentGenProps", defName, JSON.stringify(currentGenProps));
-                        // }
                         addSafeImport(definitionImports, `./${propName}`, propName);
                         definitionProperties.push(
                             createProperty(
