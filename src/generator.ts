@@ -203,35 +203,35 @@ function generateDefinitionFile(
             }
         }
     }
+    if (!duplicateProperty.hasDuplicate) {
+        defFile.addImportDeclarations(definitionImports);
+        defFile.addStatements([
+            {
+                leadingTrivia: (writer) => writer.newLine(),
+                isExported: true,
+                name: defName,
+                docs: [definition.docs.join("\n")],
+                kind: StructureKind.Interface,
+                properties: definitionProperties,
+            },
+        ]);
+        // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
+        defFile.saveSync();
+    }
 
-    // if (!duplicateProperty.hasDuplicate) {
-    //     defFile.addImportDeclarations(definitionImports);
-    //     defFile.addStatements([
-    //         {
-    //             leadingTrivia: (writer) => writer.newLine(),
-    //             isExported: true,
-    //             name: defName,
-    //             docs: [definition.docs.join("\n")],
-    //             kind: StructureKind.Interface,
-    //             properties: definitionProperties,
-    //         },
-    //     ]);
-    //     // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
-    //     defFile.saveSync();
-    // }
-    defFile.addImportDeclarations(definitionImports);
-    defFile.addStatements([
-        {
-            leadingTrivia: (writer) => writer.newLine(),
-            isExported: true,
-            name: defName,
-            docs: [definition.docs.join("\n")],
-            kind: StructureKind.Interface,
-            properties: definitionProperties,
-        },
-    ]);
-    // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
-    defFile.saveSync();
+    // defFile.addImportDeclarations(definitionImports);
+    // defFile.addStatements([
+    //     {
+    //         leadingTrivia: (writer) => writer.newLine(),
+    //         isExported: true,
+    //         name: defName,
+    //         docs: [definition.docs.join("\n")],
+    //         kind: StructureKind.Interface,
+    //         properties: definitionProperties,
+    //     },
+    // ]);
+    // // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
+    // defFile.saveSync();
 }
 
 export async function generate(
