@@ -20,7 +20,7 @@
         "dev": "ts-node -T ./dev.ts",
         "dist": "tsc",
         "build": "tsc",
-        "local-build": "tsc && cp -r dist ../focapp/node_modules/wsdl-tsclient",
+        "local-build": "tsc && cp -r dist ../focapp/node_modules/wsdl-tsclient && cp -r node_modules ../focapp/node_modules/wsdl-tsclient",
         "format": "npx prettier --write ./src"
     },
     "repository": {
@@ -41,6 +41,7 @@
     },
     "homepage": "https://github.com/applyinnovations/wsdl-tsclient#readme",
     "devDependencies": {
+        "@types/lodash": "^4.14.177",
         "prettier": "^2.3.2",
         "tap-spec": "^5.0.0",
         "tape": "^5.2.2",
@@ -54,6 +55,7 @@
         "@types/yargs": "^16.0.1",
         "camelcase": "^6.2.0",
         "chalk": "^4.1.1",
+        "lodash": "^4.17.21",
         "sanitize-filename": "^1.6.3",
         "soap": "applyinnovations/node-soap",
         "supports-color": "^8.1.1",

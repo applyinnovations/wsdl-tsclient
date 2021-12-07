@@ -64,6 +64,7 @@ var camelcase_1 = __importDefault(require("camelcase"));
 var path_1 = __importDefault(require("path"));
 var ts_morph_1 = require("ts-morph");
 var logger_1 = require("./utils/logger");
+var lodash_1 = require("lodash");
 var defaultOptions = {
     emitDefinitionsOnly: false,
 };
@@ -127,13 +128,6 @@ function simplifyDefinitions(definitionImports, definitionProperties) {
         definitionProperties: definitionProperties,
     };
 }
-var genPropsArray = [];
-// const checkIfDuplicateDefinition = (definitions: Definition[]) => {
-//     let uniqueDefinitions = []
-//     definitions.forEach((item) => {
-//         if(item.properties.kin)
-//     })
-// };
 function createDefinitionFile(generated, definition, project, defDir) {
     var defName = definition.name;
     var defFilePath = path_1.default.join(defDir, "".concat(defName, ".ts"));
@@ -156,31 +150,28 @@ function createDefinitionFile(generated, definition, project, defDir) {
             // WORKING
             for (var propName in generatedProperties) {
                 if (prop === null || prop === void 0 ? void 0 : prop.ref) {
-                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
-                        console.log("=========== START ============");
-                        console.log("DUPLICATE", propName, prop.ref.name);
+                    var currentGenProps = generatedProperties[propName];
+                    if (propName !== prop.ref.name && (0, lodash_1.isEqual)(currentGenProps.properties, prop.ref.properties)) {
                         addSafeImport(definitionImports, "./".concat(propName), propName);
-                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
+                        definitionProperties.push(createProperty(currentGenProps.name, propName, currentGenProps.sourceName, currentGenProps.isArray));
                         duplicateCount++;
-                        console.log("DUPLICATE COUNT: ", duplicateCount);
                         cont = false;
                     }
                 }
             }
             if (cont) {
                 if (!generated.includes(prop.ref)) {
-                    // Wasn't generated yet
-                    console.log("it went here=====?");
                     // @ts-ignore
                     createDefinitionFile(generated, prop.ref.definition, project, defDir);
                 }
                 addSafeImport(definitionImports, "./".concat(prop.ref.name), prop.ref.name);
                 definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
-                // @ts-ignore
-            }
-            if (prop === null || prop === void 0 ? void 0 : prop.ref) {
-                // @ts-ignore
-                generatedProperties[prop.ref.name] = prop.ref.properties;
+                generatedProperties[prop.ref.name] = {
+                    properties: prop.ref.properties,
+                    sourceName: prop.sourceName,
+                    name: prop.name,
+                    isArray: prop.isArray,
+                };
             }
         }
     }
