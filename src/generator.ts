@@ -61,7 +61,13 @@ function addSafeImport(
 }
 
 const incorrectPropNameChars = [" ", "-", "."];
-let generatedProperties: ObjectType = {};
+type GenProperty = {
+    properties: Array<DefinitionProperty>;
+    name: string;
+    sourceName: string;
+    isArray: boolean;
+};
+let generatedProperties: { [key: string]: GenProperty } = {};
 let duplicateCount = 0;
 
 /**
@@ -90,6 +96,28 @@ function createProperty(
     };
 }
 
+const getDuplicateProperty = (
+    property: Array<DefinitionProperty>
+): {
+    hasDuplicate: boolean;
+    genProp?: GenProperty;
+} => {
+    let returnValue = {
+        hasDuplicate: false,
+    };
+    for (const propName in generatedProperties) {
+        const currentGenProps = generatedProperties[propName];
+        if (isEqual(currentGenProps.properties, property)) {
+            returnValue = {
+                // @ts-ignore
+                genProp: currentGenProps,
+                hasDuplicate: true,
+            };
+        }
+    }
+
+    return returnValue;
+};
 function generateDefinitionFile(
     project: Project,
     definition: null | Definition,
@@ -102,11 +130,25 @@ function generateDefinitionFile(
     const defFile = project.createSourceFile(defFilePath, "", {
         overwrite: true,
     });
-
+    // if (defName.includes("ProtelAssociatedQuantity")) {
+    //     console.log("this is the definition", JSON.stringify(definition));
+    //     console.log("this is the definition", JSON.stringify(generatedProperties));
+    // }
     generated.push(definition);
 
     const definitionImports: OptionalKind<ImportDeclarationStructure>[] = [];
     const definitionProperties: PropertySignatureStructure[] = [];
+    const duplicateProperty = getDuplicateProperty(definition.properties);
+    if (duplicateProperty.hasDuplicate) {
+        if (defName.includes("ProtelAssociatedQuantity")) {
+            console.log("this is the mtchced", JSON.stringify(duplicateProperty?.genProp?.properties));
+            console.log("this is the original", JSON.stringify(definition.properties));
+        }
+        definition.properties = duplicateProperty?.genProp?.properties;
+        definition.name = duplicateProperty?.genProp?.name;
+        definition.sourceName = duplicateProperty?.genProp?.sourceName;
+    }
+
     for (const prop of definition.properties) {
         let cont = true;
         // @ts-ignore
@@ -118,14 +160,15 @@ function generateDefinitionFile(
         } else if (prop.kind === "REFERENCE") {
             // e.g. Items
 
-            if (defName.includes("ProtelAssociatedQuantity")) {
-                console.log("this is the propName", JSON.stringify(prop));
-            }
             // WORKING
             for (const propName in generatedProperties) {
                 if (prop?.ref) {
                     const currentGenProps = generatedProperties[propName];
-                    if (isEqual(currentGenProps.properties, prop.ref.properties)) {
+                    if (propName === prop.ref.name || isEqual(currentGenProps.properties, prop.ref.properties)) {
+                        if (defName.includes("ProtelAssociatedQuantity")) {
+                            console.log("this is the defName", currentGenProps.name, propName);
+                        }
+
                         addSafeImport(definitionImports, `./${propName}`, propName);
                         definitionProperties.push(
                             createProperty(
@@ -161,6 +204,21 @@ function generateDefinitionFile(
         }
     }
 
+    // if (!duplicateProperty.hasDuplicate) {
+    //     defFile.addImportDeclarations(definitionImports);
+    //     defFile.addStatements([
+    //         {
+    //             leadingTrivia: (writer) => writer.newLine(),
+    //             isExported: true,
+    //             name: defName,
+    //             docs: [definition.docs.join("\n")],
+    //             kind: StructureKind.Interface,
+    //             properties: definitionProperties,
+    //         },
+    //     ]);
+    //     // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
+    //     defFile.saveSync();
+    // }
     defFile.addImportDeclarations(definitionImports);
     defFile.addStatements([
         {

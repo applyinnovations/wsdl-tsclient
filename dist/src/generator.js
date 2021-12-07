@@ -121,17 +121,48 @@ function createProperty(name, type, doc, isArray, optional) {
         type: isArray ? "Array<".concat(type, ">") : type,
     };
 }
+var getDuplicateProperty = function (property) {
+    var returnValue = {
+        hasDuplicate: false,
+    };
+    for (var propName in generatedProperties) {
+        var currentGenProps = generatedProperties[propName];
+        if ((0, lodash_1.isEqual)(currentGenProps.properties, property)) {
+            returnValue = {
+                // @ts-ignore
+                genProp: currentGenProps,
+                hasDuplicate: true,
+            };
+        }
+    }
+    return returnValue;
+};
 function generateDefinitionFile(project, definition, defDir, stack, generated) {
+    var _a, _b, _c, _d;
     var defName = definition.name;
     var defFilePath = path_1.default.join(defDir, "".concat(defName, ".ts"));
     var defFile = project.createSourceFile(defFilePath, "", {
         overwrite: true,
     });
+    // if (defName.includes("ProtelAssociatedQuantity")) {
+    //     console.log("this is the definition", JSON.stringify(definition));
+    //     console.log("this is the definition", JSON.stringify(generatedProperties));
+    // }
     generated.push(definition);
     var definitionImports = [];
     var definitionProperties = [];
-    for (var _i = 0, _a = definition.properties; _i < _a.length; _i++) {
-        var prop = _a[_i];
+    var duplicateProperty = getDuplicateProperty(definition.properties);
+    if (duplicateProperty.hasDuplicate) {
+        if (defName.includes("ProtelAssociatedQuantity")) {
+            console.log("this is the mtchced", JSON.stringify((_a = duplicateProperty === null || duplicateProperty === void 0 ? void 0 : duplicateProperty.genProp) === null || _a === void 0 ? void 0 : _a.properties));
+            console.log("this is the original", JSON.stringify(definition.properties));
+        }
+        definition.properties = (_b = duplicateProperty === null || duplicateProperty === void 0 ? void 0 : duplicateProperty.genProp) === null || _b === void 0 ? void 0 : _b.properties;
+        definition.name = (_c = duplicateProperty === null || duplicateProperty === void 0 ? void 0 : duplicateProperty.genProp) === null || _c === void 0 ? void 0 : _c.name;
+        definition.sourceName = (_d = duplicateProperty === null || duplicateProperty === void 0 ? void 0 : duplicateProperty.genProp) === null || _d === void 0 ? void 0 : _d.sourceName;
+    }
+    for (var _i = 0, _e = definition.properties; _i < _e.length; _i++) {
+        var prop = _e[_i];
         var cont = true;
         // @ts-ignore
         // console.log(prop);
@@ -141,14 +172,14 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
         }
         else if (prop.kind === "REFERENCE") {
             // e.g. Items
-            if (defName.includes("ProtelAssociatedQuantity")) {
-                console.log("this is the propName", JSON.stringify(prop));
-            }
             // WORKING
             for (var propName in generatedProperties) {
                 if (prop === null || prop === void 0 ? void 0 : prop.ref) {
                     var currentGenProps = generatedProperties[propName];
-                    if ((0, lodash_1.isEqual)(currentGenProps.properties, prop.ref.properties)) {
+                    if (propName === prop.ref.name || (0, lodash_1.isEqual)(currentGenProps.properties, prop.ref.properties)) {
+                        if (defName.includes("ProtelAssociatedQuantity")) {
+                            console.log("this is the defName", currentGenProps.name, propName);
+                        }
                         addSafeImport(definitionImports, "./".concat(propName), propName);
                         definitionProperties.push(createProperty(currentGenProps.name, propName, currentGenProps.sourceName, currentGenProps.isArray));
                         duplicateCount++;
@@ -175,6 +206,21 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
             }
         }
     }
+    // if (!duplicateProperty.hasDuplicate) {
+    //     defFile.addImportDeclarations(definitionImports);
+    //     defFile.addStatements([
+    //         {
+    //             leadingTrivia: (writer) => writer.newLine(),
+    //             isExported: true,
+    //             name: defName,
+    //             docs: [definition.docs.join("\n")],
+    //             kind: StructureKind.Interface,
+    //             properties: definitionProperties,
+    //         },
+    //     ]);
+    //     // Logger.log(`Writing Definition file: ${path.resolve(path.join(defDir, defName))}.ts`);
+    //     defFile.saveSync();
+    // }
     defFile.addImportDeclarations(definitionImports);
     defFile.addStatements([
         {
