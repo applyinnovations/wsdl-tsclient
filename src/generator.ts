@@ -10,7 +10,7 @@ import {
 } from "ts-morph";
 import { Definition, DefinitionProperty, Method, ParsedWsdl } from "./models/parsed-wsdl";
 import { Logger } from "./utils/logger";
-
+import { isEqual } from "lodash";
 export interface GeneratorOptions {
     emitDefinitionsOnly: boolean;
 }
@@ -107,13 +107,14 @@ function generateDefinitionFile(
 
     const definitionImports: OptionalKind<ImportDeclarationStructure>[] = [];
     const definitionProperties: PropertySignatureStructure[] = [];
+    if (defName.includes("ProtelAssociatedQuantity")) {
+        console.log("this is the definition", JSON.stringify(definition));
+    }
+
     for (const prop of definition.properties) {
         let cont = true;
         // @ts-ignore
-        if (prop?.ref) {
-            // @ts-ignore
-            generatedProperties[prop.ref.name] = prop.ref.properties;
-        }
+
         // console.log(prop);
         if (prop.kind === "PRIMITIVE") {
             // e.g. string
@@ -124,20 +125,37 @@ function generateDefinitionFile(
             // WORKING
             for (const propName in generatedProperties) {
                 if (prop?.ref) {
-                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
-                        console.log("=========== START ============");
-                        console.log("DUPLICATE", propName, prop.ref.name);
-                        delete generatedProperties[prop.ref.name];
+                    const currentGenProps = generatedProperties[propName];
+                    if (isEqual(currentGenProps.properties, prop.ref.properties)) {
+                        // if (defName.includes("ProtelAssociatedQuantity")) {
+                        //     console.log("this is the propName", defName, JSON.stringify(prop));
+                        //     console.log("this is the currentGenProps", defName, JSON.stringify(currentGenProps));
+                        // }
                         addSafeImport(definitionImports, `./${propName}`, propName);
-                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
+                        definitionProperties.push(
+                            createProperty(
+                                currentGenProps.name,
+                                propName,
+                                currentGenProps.sourceName,
+                                currentGenProps.isArray
+                            )
+                        );
                         duplicateCount++;
-                        console.log("DUPLICATE COUNT: ", duplicateCount);
                         cont = false;
                     }
                 }
             }
 
             if (cont) {
+                if (prop?.ref) {
+                    // @ts-ignore
+                    generatedProperties[prop.ref.name] = {
+                        properties: prop.ref.properties,
+                        name: prop.name,
+                        sourceName: prop.sourceName,
+                        isArray: prop.isArray,
+                    };
+                }
                 if (!generated.includes(prop.ref)) {
                     // Wasn't generated yet
                     generateDefinitionFile(project, prop.ref, defDir, [...stack, prop.ref.name], generated);

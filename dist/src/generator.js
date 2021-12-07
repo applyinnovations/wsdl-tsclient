@@ -64,6 +64,7 @@ var camelcase_1 = __importDefault(require("camelcase"));
 var path_1 = __importDefault(require("path"));
 var ts_morph_1 = require("ts-morph");
 var logger_1 = require("./utils/logger");
+var lodash_1 = require("lodash");
 var defaultOptions = {
     emitDefinitionsOnly: false,
 };
@@ -120,6 +121,26 @@ function createProperty(name, type, doc, isArray, optional) {
         type: isArray ? "Array<".concat(type, ">") : type,
     };
 }
+var updateDuplicateReference = function (prop, definitionImports, definitionProperties) {
+    var hasDuplicate = false;
+    for (var propName in generatedProperties) {
+        // @ts-ignore
+        if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+            var currentGenProps = generatedProperties[propName];
+            // @ts-ignore
+            if ((0, lodash_1.isEqual)(currentGenProps.properties, prop.ref.properties)) {
+                // if (defName.includes("ProtelAssociatedQuantity")) {
+                //     console.log("this is the propName", defName, JSON.stringify(prop));
+                //     console.log("this is the currentGenProps", defName, JSON.stringify(currentGenProps));
+                // }
+                addSafeImport(definitionImports, "./".concat(propName), propName);
+                definitionProperties.push(createProperty(currentGenProps.name, propName, currentGenProps.sourceName, currentGenProps.isArray));
+                hasDuplicate = true;
+            }
+        }
+    }
+    return hasDuplicate;
+};
 function generateDefinitionFile(project, definition, defDir, stack, generated) {
     var defName = definition.name;
     var defFilePath = path_1.default.join(defDir, "".concat(defName, ".ts"));
@@ -129,14 +150,14 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
     generated.push(definition);
     var definitionImports = [];
     var definitionProperties = [];
+    if (defName.includes("ProtelAssociatedQuantity")) {
+        console.log("this is the definition", JSON.stringify(definition));
+        console.log("this is the genPropertoes", JSON.stringify(generatedProperties));
+    }
     for (var _i = 0, _a = definition.properties; _i < _a.length; _i++) {
         var prop = _a[_i];
         var cont = true;
         // @ts-ignore
-        if (prop === null || prop === void 0 ? void 0 : prop.ref) {
-            // @ts-ignore
-            generatedProperties[prop.ref.name] = prop.ref.properties;
-        }
         // console.log(prop);
         if (prop.kind === "PRIMITIVE") {
             // e.g. string
@@ -145,21 +166,17 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
         else if (prop.kind === "REFERENCE") {
             // e.g. Items
             // WORKING
-            for (var propName in generatedProperties) {
-                if (prop === null || prop === void 0 ? void 0 : prop.ref) {
-                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
-                        console.log("=========== START ============");
-                        console.log("DUPLICATE", propName, prop.ref.name);
-                        delete generatedProperties[prop.ref.name];
-                        addSafeImport(definitionImports, "./".concat(propName), propName);
-                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
-                        duplicateCount++;
-                        console.log("DUPLICATE COUNT: ", duplicateCount);
-                        cont = false;
-                    }
-                }
-            }
+            cont = updateDuplicateReference(prop, definitionImports, definitionProperties);
             if (cont) {
+                if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+                    // @ts-ignore
+                    generatedProperties[prop.ref.name] = {
+                        properties: prop.ref.properties,
+                        name: prop.name,
+                        sourceName: prop.sourceName,
+                        isArray: prop.isArray,
+                    };
+                }
                 if (!generated.includes(prop.ref)) {
                     // Wasn't generated yet
                     generateDefinitionFile(project, prop.ref, defDir, __spreadArray(__spreadArray([], stack, true), [prop.ref.name], false), generated);
