@@ -109,30 +109,39 @@ function generateDefinitionFile(
     const definitionProperties: PropertySignatureStructure[] = [];
     for (const prop of definition.properties) {
         let cont = true;
-        // @ts-ignore
-        if (prop?.ref) {
-            // @ts-ignore
-            generatedProperties[prop.ref.name] = prop.ref.properties;
-        }
         // console.log(prop);
         if (prop.kind === "PRIMITIVE") {
             // e.g. string
             definitionProperties.push(createProperty(prop.name, prop.type, prop.description, prop.isArray));
         } else if (prop.kind === "REFERENCE") {
             // e.g. Items
+            if (prop.ref.name === "ProtelAssociatedQuantity") {
+                // @ts-ignore
+                console.log("ProtelAssociatedQuantity", prop.ref.properties);
+            }
+            if (prop.ref.name === "ProtelAssociatedQuantity1") {
+                // @ts-ignore
+                console.log("ProtelAssociatedQuantity1", prop.ref.properties);
+            }
 
             // WORKING
             for (const propName in generatedProperties) {
                 if (prop?.ref) {
-                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
-                        console.log("=========== START ============");
-                        console.log("DUPLICATE", propName, prop.ref.name);
-                        delete generatedProperties[prop.ref.name];
-                        addSafeImport(definitionImports, `./${propName}`, propName);
-                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
-                        duplicateCount++;
-                        console.log("DUPLICATE COUNT: ", duplicateCount);
-                        cont = false;
+                    // I think the problem is in MAX CALL STACK if I can pass that then this might work?
+                    if (propName !== prop.ref.name) {
+                        if (deepEqual(generatedProperties[propName], prop.ref.properties)) {
+                            // console.log("=========== START ============");
+                            // console.log("DUPLICATE", propName, prop.ref.name);
+                            addSafeImport(definitionImports, `./${propName}`, propName);
+                            definitionProperties.push(
+                                createProperty(prop.name, propName, prop.sourceName, prop.isArray)
+                            );
+                            duplicateCount++;
+                            // console.log("DUPLICATE COUNT: ", duplicateCount);
+                            cont = false;
+                        }
+                    } else {
+                        //console.log(`propName ${propName} is equal with prop.ref.name ${prop.ref.name}`);
                     }
                 }
             }
@@ -144,6 +153,11 @@ function generateDefinitionFile(
                 }
                 addSafeImport(definitionImports, `./${prop.ref.name}`, prop.ref.name);
                 definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+                // @ts-ignore
+                if (prop?.ref) {
+                    // @ts-ignore
+                    generatedProperties[prop.ref.name] = prop.ref.properties;
+                }
             }
         }
     }

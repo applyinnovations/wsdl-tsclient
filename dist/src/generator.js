@@ -132,11 +132,6 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
     for (var _i = 0, _a = definition.properties; _i < _a.length; _i++) {
         var prop = _a[_i];
         var cont = true;
-        // @ts-ignore
-        if (prop === null || prop === void 0 ? void 0 : prop.ref) {
-            // @ts-ignore
-            generatedProperties[prop.ref.name] = prop.ref.properties;
-        }
         // console.log(prop);
         if (prop.kind === "PRIMITIVE") {
             // e.g. string
@@ -144,18 +139,31 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
         }
         else if (prop.kind === "REFERENCE") {
             // e.g. Items
+            if (prop.ref.name === "ProtelAssociatedQuantity") {
+                // @ts-ignore
+                console.log("ProtelAssociatedQuantity", prop.ref.properties);
+            }
+            if (prop.ref.name === "ProtelAssociatedQuantity1") {
+                // @ts-ignore
+                console.log("ProtelAssociatedQuantity1", prop.ref.properties);
+            }
             // WORKING
             for (var propName in generatedProperties) {
                 if (prop === null || prop === void 0 ? void 0 : prop.ref) {
-                    if (propName !== prop.ref.name && deepEqual(generatedProperties[propName], prop.ref.properties)) {
-                        console.log("=========== START ============");
-                        console.log("DUPLICATE", propName, prop.ref.name);
-                        delete generatedProperties[prop.ref.name];
-                        addSafeImport(definitionImports, "./".concat(propName), propName);
-                        definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
-                        duplicateCount++;
-                        console.log("DUPLICATE COUNT: ", duplicateCount);
-                        cont = false;
+                    // I think the problem is in MAX CALL STACK if I can pass that then this might work?
+                    if (propName !== prop.ref.name) {
+                        if (deepEqual(generatedProperties[propName], prop.ref.properties)) {
+                            // console.log("=========== START ============");
+                            // console.log("DUPLICATE", propName, prop.ref.name);
+                            addSafeImport(definitionImports, "./".concat(propName), propName);
+                            definitionProperties.push(createProperty(prop.name, propName, prop.sourceName, prop.isArray));
+                            duplicateCount++;
+                            // console.log("DUPLICATE COUNT: ", duplicateCount);
+                            cont = false;
+                        }
+                    }
+                    else {
+                        //console.log(`propName ${propName} is equal with prop.ref.name ${prop.ref.name}`);
                     }
                 }
             }
@@ -166,6 +174,11 @@ function generateDefinitionFile(project, definition, defDir, stack, generated) {
                 }
                 addSafeImport(definitionImports, "./".concat(prop.ref.name), prop.ref.name);
                 definitionProperties.push(createProperty(prop.name, prop.ref.name, prop.sourceName, prop.isArray));
+                // @ts-ignore
+                if (prop === null || prop === void 0 ? void 0 : prop.ref) {
+                    // @ts-ignore
+                    generatedProperties[prop.ref.name] = prop.ref.properties;
+                }
             }
         }
     }
