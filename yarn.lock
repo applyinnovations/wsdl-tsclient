@@ -152,9 +152,9 @@ available-typed-arrays@^1.0.5:
   integrity sha512-DMD0KiN46eipeziST1LPP/STfDU0sufISXmjSgvVsoU2tqxctQeASejWcfNtxYKqETM1UxQ8sp2OrSBWpHY6sw==
 
 axios-ntlm@^1.2.0:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/axios-ntlm/-/axios-ntlm-1.2.1.tgz#8facad74cdf5a53eab34fa2fe91c8d4358950ed4"
-  integrity sha512-M8qLdkOjVSrYmzOs7sxc/Ynu54yT2YHVOLFiTxicwPnll0H+sP3fkEQHGgEzpBcH4UA/ovRgTioR/vjelUG35A==
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/axios-ntlm/-/axios-ntlm-1.2.3.tgz#94594bbd71c4e76fa09b55e1107535ed28f05f18"
+  integrity sha512-9QkZk+gAecmybyL0H5ZCtDLWq86/sjGfD+K1FTPO2sA7qAr/SCVxZICl1Cb/9jTzbdPjEb6s2KGfkzn6qvULXw==
   dependencies:
     axios "^0.21.3"
 
@@ -423,9 +423,9 @@ fill-range@^7.0.1:
     to-regex-range "^5.0.1"
 
 follow-redirects@^1.14.0:
-  version "1.14.7"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.7.tgz#2004c02eb9436eee9a21446a6477debf17e81685"
-  integrity sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==
+  version "1.14.8"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.8.tgz#016996fb9a11a100566398b1c6839337d7bfa8fc"
+  integrity sha512-1x0S9UVJHsQprFcEC/qnNzBLcIxsjAV905f/UkQxbclCsoTWlacCNOpQa/anodLl2uaEKFhfWOvM2Qg77+15zA==
 
 for-each@^0.3.3:
   version "0.3.3"
@@ -972,9 +972,9 @@ side-channel@^1.0.3, side-channel@^1.0.4:
     get-intrinsic "^1.0.2"
     object-inspect "^1.9.0"
 
-soap@applyinnovations/node-soap:
+"soap@https://github.com/applyinnovations/node-soap.git":
   version "0.43.0"
-  resolved "https://codeload.github.com/applyinnovations/node-soap/tar.gz/cb58afc69eddff9668c24f782699413ded058661"
+  resolved "https://github.com/applyinnovations/node-soap.git#74145d9e11bdb9299af3fab5aa07223122feda1c"
   dependencies:
     axios "^0.21.1"
     axios-ntlm "^1.2.0"
