@@ -972,7 +972,7 @@ side-channel@^1.0.3, side-channel@^1.0.4:
     get-intrinsic "^1.0.2"
     object-inspect "^1.9.0"
 
-soap@applyinnovations/node-soap#1.0.0:
+soap@applyinnovations/node-soap:
   version "1.0.0"
   resolved "https://codeload.github.com/applyinnovations/node-soap/tar.gz/14b4f5c07a3192aa2192a595aa951d1ae2cd1006"
   dependencies:
