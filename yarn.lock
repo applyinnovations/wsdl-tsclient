@@ -973,8 +973,8 @@ side-channel@^1.0.3, side-channel@^1.0.4:
     object-inspect "^1.9.0"
 
 soap@applyinnovations/node-soap#1.0.0:
-  version "0.43.0"
-  resolved "https://codeload.github.com/applyinnovations/node-soap/tar.gz/e8c1cd425f8cdd0889f55c4fb0c8bccb4c3315a0"
+  version "1.0.0"
+  resolved "https://codeload.github.com/applyinnovations/node-soap/tar.gz/14b4f5c07a3192aa2192a595aa951d1ae2cd1006"
   dependencies:
     axios "^0.21.1"
     axios-ntlm "^1.2.0"
