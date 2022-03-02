@@ -57,7 +57,7 @@
         "chalk": "^4.1.1",
         "lodash": "^4.17.21",
         "sanitize-filename": "^1.6.3",
-        "soap": "https://github.com/applyinnovations/node-soap.git",
+        "soap": "applyinnovations/node-soap#1.0.0",
         "supports-color": "^8.1.1",
         "ts-morph": "^11.0.0",
         "yargs": "^16.2.0"
